@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>君少键盘文件处理工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #5b37e8;
+            --primary-light: #6d4bff;
+            --secondary: #1e88e5;
+            --success: #43a047;
+            --warning: #ffb300;
+            --danger: #e53935;
+            --dark: #202124;
+            --light: #f8f9fa;
+            --gray: #dadce0;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transform: translateY(0);
+            transition: var(--transition);
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            transform: rotate(30deg);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            position: relative;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .format-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin: 0 3px;
+        }
+
+        .badge-bds { background: rgba(91, 55, 232, 0.2); color: #5b37e8; }
+        .badge-bdi { background: rgba(30, 136, 229, 0.2); color: #1e88e5; }
+        .badge-bda { background: rgba(67, 160, 71, 0.2); color: #43a047; }
+        .badge-zip { background: rgba(255, 179, 0, 0.2); color: #ffb300; }
+
+        .main-content {
+            padding: 35px 40px 40px;
+        }
+
+        .section {
+            margin-bottom: 35px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--primary);
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title i {
+            margin-right: 12px;
+            color: var(--primary);
+            background: rgba(91, 55, 232, 0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-section {
+            border: 2px dashed var(--gray);
+            border-radius: 14px;
+            padding: 45px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: var(--transition);
+            background: white;
+            position: relative;
+        }
+
+        .upload-section.drag-over {
+            border-color: var(--primary);
+            background: rgba(91, 55, 232, 0.03);
+            transform: scale(1.01);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+
+        .upload-section:hover .upload-icon {
+            transform: translateY(-5px);
+        }
+
+        .upload-section h2 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+
+        .upload-section p {
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .browse-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            border: none;
+            padding: 14px 35px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: var(--transition);
+            margin: 10px;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(91, 55, 232, 0.3);
+        }
+
+        .browse-btn i {
+            margin-right: 8px;
+        }
+
+        .browse-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(91, 55, 232, 0.4);
+        }
+
+        .file-info {
+            margin: 25px 0;
+            padding: 20px;
+            background: rgba(67, 160, 71, 0.08);
+            border-radius: 12px;
+            border-left: 4px solid var(--success);
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-info::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--success);
+        }
+
+        .file-info div {
+            margin-bottom: 10px;
+            display: flex;
+        }
+
+        .file-info strong {
+            min-width: 90px;
+            color: var(--dark);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .action-btn {
+            padding: 18px 15px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.05em;
+            font-weight: 600;
+            transition: var(--transition);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            background: white;
+            color: var(--dark);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+        }
+
+        .action-btn i {
+            font-size: 2.2rem;
+            margin-bottom: 12px;
+            transition: var(--transition);
+        }
+
+        .action-btn span {
+            transition: var(--transition);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .action-btn:hover i {
+            transform: scale(1.15);
+        }
+
+        .decrypt-btn::before { background: var(--success); }
+        .encrypt-btn::before { background: var(--primary); }
+        .check-btn::before { background: var(--warning); }
+        .bds-to-bdi-btn::before { background: var(--secondary); }
+        .bdi-to-bds-btn::before { background: #9c27b0; }
+        .repair-btn::before { background: #00acc1; }
+
+        .decrypt-btn:hover { background: rgba(67, 160, 71, 0.1); }
+        .encrypt-btn:hover { background: rgba(91, 55, 232, 0.1); }
+        .check-btn:hover { background: rgba(255, 179, 0, 0.1); }
+        .bds-to-bdi-btn:hover { background: rgba(30, 136, 229, 0.1); }
+        .bdi-to-bds-btn:hover { background: rgba(156, 39, 176, 0.1); }
+        .repair-btn:hover { background: rgba(0, 172, 193, 0.1); }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .action-btn:disabled:hover i {
+            transform: none;
+        }
+
+        .download-options {
+            background: var(--light);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+            display: none;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .download-options h4 {
+            margin-bottom: 20px;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+        }
+
+        .download-options h4 i {
+            margin-right: 10px;
+            color: var(--primary);
+        }
+
+        .format-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .format-option {
+            padding: 14px 25px;
+            border: 2px solid var(--gray);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 110px;
+        }
+
+        .format-option i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+
+        .format-option:hover {
+            border-color: var(--primary);
+            background: rgba(91, 55, 232, 0.05);
+            transform: translateY(-3px);
+        }
+
+        .format-option.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 5px 15px rgba(91, 55, 232, 0.3);
+        }
+
+        .format-option.selected i {
+            color: white;
+        }
+
+        .progress-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 25px 0;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 16px;
+            background: #edf2f7;
+            border-radius: 50px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 50px;
+            transition: width 0.4s ease;
+            width: 0%;
+            position: relative;
+        }
+
+        .progress::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            background-size: 200% 100%;
+            animation: shine 1.5s infinite;
+        }
+
+        @keyframes shine {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .status {
+            padding: 18px 20px;
+            border-radius: 12px;
+            margin: 15px 0;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .status i {
+            margin-right: 12px;
+            font-size: 1.4rem;
+        }
+
+        .status.success {
+            background: rgba(67, 160, 71, 0.15);
+            color: #2e7d32;
+            border-left: 4px solid var(--success);
+        }
+
+        .status.error {
+            background: rgba(229, 57, 53, 0.15);
+            color: #c62828;
+            border-left: 4px solid var(--danger);
+        }
+
+        .status.info {
+            background: rgba(30, 136, 229, 0.15);
+            color: #1565c0;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .result-section {
+            margin-top: 30px;
+            background: white;
+            border-radius: 14px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .result-box {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.95em;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            border: 1px solid var(--gray);
+        }
+
+        .encrypted-file {
+            color: #c62828;
+            margin: 8px 0;
+            padding: 10px;
+            background: rgba(229, 57, 53, 0.05);
+            border-radius: 6px;
+            border-left: 3px solid var(--danger);
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            border: none;
+            padding: 14px 35px;
+            border-radius: 50px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            font-weight: 600;
+            font-size: 1.05em;
+            margin-top: 25px;
+            transition: var(--transition);
+            box-shadow: 0 5px 15px rgba(91, 55, 232, 0.3);
+        }
+
+        .download-btn i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(91, 55, 232, 0.4);
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin: 40px 0 20px;
+        }
+
+        .feature {
+            background: white;
+            padding: 30px 25px;
+            border-radius: 14px;
+            text-align: center;
+            transition: var(--transition);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--primary);
+        }
+
+        .feature-icon {
+            font-size: 2.8rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+
+        .feature:hover .feature-icon {
+            transform: scale(1.1);
+        }
+
+        .feature h3 {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+
+        .feature p {
+            color: #555;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #777;
+            border-top: 1px solid var(--gray);
+            margin-top: 30px;
+            font-size: 0.95em;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .upload-section {
+                padding: 30px 15px;
+            }
+            
+            .action-btn {
+                width: 100%;
+            }
+            
+            .format-options {
+                flex-direction: column;
+            }
+            
+            .main-content {
+                padding: 25px 20px;
+            }
+            
+            .header {
+                padding: 25px 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .upload-icon {
+                font-size: 3rem;
+            }
+            
+            .upload-section h2 {
+                font-size: 1.5rem;
+            }
+            
+            .section-title {
+                font-size: 1.3rem;
+            }
+            
+            .feature-list {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animated {
+            animation: fadeIn 0.6s ease forwards;
+        }
+
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+        .delay-5 { animation-delay: 0.5s; }
+        
+        /* 加载动画 */
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 文件类型标签样式 */
+        .file-type-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        /* 工具提示 */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            border-bottom: 1px dotted #ccc;
+            cursor: help;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-weight: normal;
+            font-size: 0.9em;
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* 操作指南 */
+        .instructions {
+            background: var(--light);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .instructions h4 {
+            margin-bottom: 10px;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+        }
+        
+        .instructions h4 i {
+            margin-right: 10px;
+            color: var(--primary);
+        }
+        
+        .instructions ol {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container animated">
+        <div class="header">
+            <h1><i class="fas fa-keyboard"></i> 百度键盘文件处理工具</h1>
+            <p>支持 <span class="format-badge badge-bds">.bds</span> 
+                <span class="format-badge badge-bdi">.bdi</span> 
+                <span class="format-badge badge-bda">.bda</span> 
+                <span class="format-badge badge-zip">.zip</span> 格式</p>
+        </div>
+
+        <div class="main-content">
+            <div class="instructions">
+                <h4><i class="fas fa-info-circle"></i>使用说明</h4>
+                <ol>
+                    <li>上传百度键盘文件（支持拖放或点击选择文件）</li>
+                    <li>选择需要执行的操作（解密、加密、格式转换等）</li>
+                    <li>等待处理完成，选择输出格式并下载结果</li>
+                </ol>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title"><i class="fas fa-cloud-upload-alt"></i>文件上传</h2>
+                <div class="upload-section" id="dropZone">
+                    <div class="upload-icon"><i class="fas fa-file-archive"></i></div>
+                    <h2>拖放文件到此处</h2>
+                    <p>支持百度键盘相关格式文件处理</p>
+                    <input type="file" id="fileInput" class="file-input" accept=".zip,.mcpack,.mcaddon,.bds,.bdi,.bda">
+                    <button class="browse-btn" onclick="document.getElementById('fileInput').click()">
+                        <i class="fas fa-folder-open"></i> 选择文件
+                    </button>
+                    <div id="fileInfo" class="file-info" style="display: none;">
+                        <div><strong>文件名:</strong> <span id="fileName"></span></div>
+                        <div><strong>文件大小:</strong> <span id="fileSize"></span></div>
+                        <div><strong>文件类型:</strong> <span id="fileType"></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title"><i class="fas fa-tools"></i>处理工具</h2>
+                <div class="action-buttons">
+                    <button class="action-btn decrypt-btn animated delay-1" id="decryptBtn" disabled>
+                        <i class="fas fa-unlock"></i>
+                        <span>文件解密</span>
+                    </button>
+                    <button class="action-btn encrypt-btn animated delay-2" id="encryptBtn" disabled>
+                        <i class="fas fa-lock"></i>
+                        <span>文件加密</span>
+                    </button>
+                    <button class="action-btn check-btn animated delay-3" id="checkBtn" disabled>
+                        <i class="fas fa-search"></i>
+                        <span>状态检查</span>
+                    </button>
+                    <button class="action-btn bds-to-bdi-btn animated delay-1" id="bdsToBdiBtn" disabled>
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>BDS转BDI</span>
+                    </button>
+                    <button class="action-btn bdi-to-bds-btn animated delay-2" id="bdiToBdsBtn" disabled>
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>BDI转BDS</span>
+                    </button>
+                    <button class="action-btn repair-btn animated delay-3" id="repairBtn" disabled>
+                        <i class="fas fa-wrench"></i>
+                        <span>修复结构</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="download-options" id="downloadOptions">
+                <h4><i class="fas fa-download"></i>选择下载格式:</h4>
+                <div class="format-options">
+                    <div class="format-option" data-format="bds">
+                        <i class="fas fa-file-code"></i>
+                        <span>BDS (.bds)</span>
+                    </div>
+                    <div class="format-option" data-format="bdi">
+                        <i class="fas fa-file-code"></i>
+                        <span>BDI (.bdi)</span>
+                    </div>
+                    <div class="format-option" data-format="bda">
+                        <i class="fas fa-file-code"></i>
+                        <span>BDA (.bda)</span>
+                    </div>
+                    <div class="format-option selected" data-format="zip">
+                        <i class="fas fa-file-archive"></i>
+                        <span>ZIP (.zip)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-header">
+                    <span>处理进度</span>
+                    <span id="progressText">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress" id="progressBar"></div>
+                </div>
+            </div>
+
+            <div id="statusMessage"></div>
+
+            <div class="result-section animated">
+                <h2 class="section-title"><i class="fas fa-file-alt"></i>处理结果</h2>
+                <div class="result-box" id="resultBox">请上传文件并选择处理工具...</div>
+                <a href="#" class="download-btn" id="downloadBtn" style="display: none;">
+                    <i class="fas fa-download"></i> 下载处理后的文件
+                </a>
+            </div>
+
+            <div class="feature-list">
+                <div class="feature animated delay-1">
+                    <div class="feature-icon"><i class="fas fa-file-export"></i></div>
+                    <h3>全面格式支持</h3>
+                    <p>支持 BDS、BDI、BDA、ZIP 等多种格式的转换与处理</p>
+                </div>
+                <div class="feature animated delay-2">
+                    <div class="feature-icon"><i class="fas fa-sync-alt"></i></div>
+                    <h3>双向格式转换</h3>
+                    <p>多种格式互转，自由选择输出格式</p>
+                </div>
+                <div class="feature animated delay-3">
+                    <div class="feature-icon"><i class="fas fa-user-shield"></i></div>
+                    <h3>隐私保护</h3>
+                    <p>所有操作在浏览器中完成，文件不会上传到服务器</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2025 君少百度键盘文件处理工具 | 安全 · 高效 · 易用</p>
+        </div>
+    </div>
+
+    <script>
+        // 文件处理器类
+        class FileProcessor {
+            constructor() {
+                this.validExtensions = ['.zip', '.mcpack', '.mcaddon', '.bds', '.bdi', '.bda'];
+                this.fileTypeMap = {
+                    '.bds': 'BDS 文件',
+                    '.bdi': 'BDI 文件',
+                    '.bda': 'BDA 文件',
+                    '.zip': 'ZIP 压缩包',
+                    '.mcpack': 'Minecraft 包文件',
+                    '.mcaddon': 'Minecraft 附加文件'
+                };
+            }
+
+            isValidFile(file) {
+                const ext = this.getFileExtension(file.name);
+                return this.validExtensions.includes(ext);
+            }
+
+            getFileExtension(fileName) {
+                const lowerName = fileName.toLowerCase();
+                for (const ext of this.validExtensions) {
+                    if (lowerName.endsWith(ext)) {
+                        return ext;
+                    }
+                }
+                return '';
+            }
+
+            getFileType(fileName) {
+                const ext = this.getFileExtension(fileName);
+                return this.fileTypeMap[ext] || '未知文件';
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            readFileAsArrayBuffer(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => {
+                        console.error('文件读取错误:', e);
+                        reject(new Error('无法读取文件'));
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+        }
+
+        // ZIP处理器类
+        class ZipProcessor {
+            constructor() {
+                this.fileProcessor = new FileProcessor();
+                this.currentFile = null;
+                this.processedData = null;
+                this.selectedFormat = 'zip';
+                this.isProcessing = false;
+                this.initEventListeners();
+                this.setupDragAndDrop();
+            }
+
+            initEventListeners() {
+                const fileInput = document.getElementById('fileInput');
+                const decryptBtn = document.getElementById('decryptBtn');
+                const encryptBtn = document.getElementById('encryptBtn');
+                const checkBtn = document.getElementById('checkBtn');
+                const bdsToBdiBtn = document.getElementById('bdsToBdiBtn');
+                const bdiToBdsBtn = document.getElementById('bdiToBdsBtn');
+                const repairBtn = document.getElementById('repairBtn');
+                const formatOptions = document.querySelectorAll('.format-option');
+
+                fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                
+                decryptBtn.addEventListener('click', () => this.processFile(true));
+                encryptBtn.addEventListener('click', () => this.processFile(false));
+                checkBtn.addEventListener('click', () => this.checkEncryption());
+                bdsToBdiBtn.addEventListener('click', () => this.convertBdsToBdi());
+                bdiToBdsBtn.addEventListener('click', () => this.convertBdiToBds());
+                repairBtn.addEventListener('click', () => this.repairStructure());
+
+                // 格式选择
+                formatOptions.forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        formatOptions.forEach(opt => opt.classList.remove('selected'));
+                        e.currentTarget.classList.add('selected');
+                        this.selectedFormat = e.currentTarget.dataset.format;
+                        this.updateDownloadLink();
+                    });
+                });
+            }
+            
+            setupDragAndDrop() {
+                const dropZone = document.getElementById('dropZone');
+                
+                // 防止默认行为
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                // 高亮放置区域
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, highlight, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, unhighlight, false);
+                });
+                
+                function highlight() {
+                    dropZone.classList.add('drag-over');
+                }
+                
+                function unhighlight() {
+                    dropZone.classList.remove('drag-over');
+                }
+                
+                // 处理文件放置
+                dropZone.addEventListener('drop', (e) => {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    if (files.length > 0) {
+                        this.handleFile(files[0]);
+                    }
+                }, false);
+            }
+
+            handleFileSelect(event) {
+                if (event.target.files.length > 0) {
+                    this.handleFile(event.target.files[0]);
+                }
+            }
+
+            handleFile(file) {
+                if (this.isProcessing) {
+                    this.showStatus('当前有操作正在进行中，请稍后再试', 'error');
+                    return;
+                }
+
+                if (!this.fileProcessor.isValidFile(file)) {
+                    this.showStatus('请选择支持格式的文件 (.zip, .mcpack, .mcaddon, .bds, .bdi, .bda)', 'error');
+                    return;
+                }
+
+                this.currentFile = file;
+                this.processedData = null;
+                this.updateFileInfo(file);
+                this.updateButtonStates(file);
+                this.hideDownloadOptions();
+                this.showStatus('文件已准备好，请选择操作', 'info');
+                this.clearResults();
+            }
+
+            updateFileInfo(file) {
+                const fileInfo = document.getElementById('fileInfo');
+                const fileName = document.getElementById('fileName');
+                const fileSize = document.getElementById('fileSize');
+                const fileType = document.getElementById('fileType');
+
+                fileName.textContent = file.name;
+                fileSize.textContent = this.fileProcessor.formatFileSize(file.size);
+                fileType.textContent = this.fileProcessor.getFileType(file.name);
+                fileInfo.style.display = 'block';
+            }
+
+            updateButtonStates(file) {
+                const ext = this.fileProcessor.getFileExtension(file.name);
+                
+                document.getElementById('decryptBtn').disabled = false;
+                document.getElementById('encryptBtn').disabled = false;
+                document.getElementById('checkBtn').disabled = false;
+                document.getElementById('repairBtn').disabled = false;
+                
+                document.getElementById('bdsToBdiBtn').disabled = ext !== '.bds';
+                document.getElementById('bdiToBdsBtn').disabled = ext !== '.bdi';
+            }
+
+            async executeProcess(processName, operation) {
+                if (this.isProcessing) return;
+                
+                this.isProcessing = true;
+                this.showProgress(true);
+                this.clearResults();
+                this.showStatus(`${processName}中，请稍候...`, 'info');
+                
+                // 禁用所有按钮
+                this.setButtonsState(true);
+
+                try {
+                    const arrayBuffer = await this.fileProcessor.readFileAsArrayBuffer(this.currentFile);
+                    const result = await operation(arrayBuffer);
+                    
+                    if (result) {
+                        this.processedData = result;
+                        this.showDownloadOptions();
+                        this.updateDownloadLink();
+                        this.showStatus(`${processName}成功！`, 'success');
+                    } else {
+                        this.showStatus('未执行任何操作', 'info');
+                    }
+                } catch (error) {
+                    console.error(`${processName}失败:`, error);
+                    this.showStatus(`${processName}失败: ${error.message || error}`, 'error');
+                } finally {
+                    this.isProcessing = false;
+                    this.showProgress(false);
+                    // 重新启用按钮
+                    this.setButtonsState(false);
+                    this.updateButtonStates(this.currentFile);
+                }
+            }
+
+            setButtonsState(disabled) {
+                const buttons = document.querySelectorAll('.action-btn');
+                buttons.forEach(btn => {
+                    if (!btn.id.includes('bdsToBdi') && !btn.id.includes('bdiToBds')) {
+                        btn.disabled = disabled;
+                    }
+                });
+            }
+
+            async processFile(decrypt) {
+                const processName = decrypt ? '解密' : '加密';
+                await this.executeProcess(processName, async (arrayBuffer) => {
+                    const processedData = decrypt ? 
+                        this.removeEncryptionFlags(arrayBuffer) : 
+                        this.addEncryptionFlags(arrayBuffer);
+                    
+                    return processedData?.modifiedCount > 0 ? processedData.data : null;
+                });
+            }
+
+            async convertBdsToBdi() {
+                await this.executeProcess('BDS转BDI', this.convertBdsToBdiInternal.bind(this));
+            }
+
+            async convertBdiToBds() {
+                await this.executeProcess('BDI转BDS', this.convertBdiToBdsInternal.bind(this));
+            }
+
+            async repairStructure() {
+                await this.executeProcess('修复结构', this.repairStructureInternal.bind(this));
+            }
+
+            async checkEncryption() {
+                if (this.isProcessing) return;
+                
+                this.isProcessing = true;
+                this.showProgress(true);
+                this.clearResults();
+                this.showStatus('正在检查加密状态...', 'info');
+                
+                // 禁用所有按钮
+                this.setButtonsState(true);
+
+                try {
+                    const arrayBuffer = await this.fileProcessor.readFileAsArrayBuffer(this.currentFile);
+                    const encryptedFiles = this.findEncryptedFiles(arrayBuffer);
+
+                    const resultBox = document.getElementById('resultBox');
+                    if (encryptedFiles.length > 0) {
+                        resultBox.innerHTML = '<h4>🔒 加密文件列表:</h4>';
+                        encryptedFiles.forEach(file => {
+                            const div = document.createElement('div');
+                            div.className = 'encrypted-file';
+                            div.innerHTML = `<i class="fas fa-lock"></i> ${file}`;
+                            resultBox.appendChild(div);
+                        });
+                        this.showStatus(`找到 ${encryptedFiles.length} 个加密文件`, 'success');
+                    } else {
+                        resultBox.textContent = '未找到加密文件';
+                        this.showStatus('未找到加密文件', 'info');
+                    }
+                } catch (error) {
+                    console.error('检查失败:', error);
+                    this.showStatus(`检查失败: ${error.message || error}`, 'error');
+                } finally {
+                    this.isProcessing = false;
+                    this.showProgress(false);
+                    // 重新启用按钮
+                    this.setButtonsState(false);
+                    this.updateButtonStates(this.currentFile);
+                }
+            }
+
+            async convertBdsToBdiInternal(arrayBuffer) {
+                try {
+                    const zip = await JSZip.loadAsync(arrayBuffer);
+                    const newZip = new JSZip();
+                    
+                    // 创建skin文件夹
+                    const skinFolder = newZip.folder("skin");
+                    
+                    // 批量处理文件
+                    const files = [];
+                    zip.forEach((relativePath, zipEntry) => {
+                        if (!zipEntry.dir) {
+                            files.push({
+                                path: relativePath,
+                                entry: zipEntry
+                            });
+                        }
+                    });
+
+                    // 更新进度
+                    let processed = 0;
+                    const total = files.length;
+                    
+                    // 并行处理文件
+                    const processPromises = files.map(file => 
+                        file.entry.async('uint8array').then(data => {
+                            skinFolder.file(file.path, data);
+                            processed++;
+                            this.updateProgress((processed / total) * 100);
+                            return data;
+                        })
+                    );
+
+                    await Promise.all(processPromises);
+                    return await newZip.generateAsync({type: 'arraybuffer'});
+                } catch (error) {
+                    console.error('BDS转BDI错误:', error);
+                    throw error;
+                }
+            }
+
+            async convertBdiToBdsInternal(arrayBuffer) {
+                try {
+                    const zip = await JSZip.loadAsync(arrayBuffer);
+                    const newZip = new JSZip();
+                    
+                    // 检查是否有skin文件夹
+                    const skinFolder = zip.folder("skin");
+                    if (!skinFolder) {
+                        throw new Error("BDI文件中没有找到skin文件夹");
+                    }
+                    
+                    // 批量处理文件
+                    const files = [];
+                    skinFolder.forEach((relativePath, zipEntry) => {
+                        if (!zipEntry.dir) {
+                            files.push({
+                                path: relativePath,
+                                entry: zipEntry
+                            });
+                        }
+                    });
+
+                    // 更新进度
+                    let processed = 0;
+                    const total = files.length;
+                    
+                    // 并行处理文件
+                    const processPromises = files.map(file => 
+                        file.entry.async('uint8array').then(data => {
+                            newZip.file(file.path, data);
+                            processed++;
+                            this.updateProgress((processed / total) * 100);
+                            return data;
+                        })
+                    );
+
+                    await Promise.all(processPromises);
+                    return await newZip.generateAsync({type: 'arraybuffer'});
+                } catch (error) {
+                    console.error('BDI转BDS错误:', error);
+                    throw error;
+                }
+            }
+
+            async repairStructureInternal(arrayBuffer) {
+                try {
+                    const zip = await JSZip.loadAsync(arrayBuffer);
+                    return await zip.generateAsync({type: 'arraybuffer'});
+                } catch (error) {
+                    console.error('修复结构错误:', error);
+                    throw error;
+                }
+            }
+
+            removeEncryptionFlags(arrayBuffer) {
+                return this.processEncryptionFlags(arrayBuffer, true);
+            }
+
+            addEncryptionFlags(arrayBuffer) {
+                return this.processEncryptionFlags(arrayBuffer, false);
+            }
+
+            processEncryptionFlags(arrayBuffer, remove) {
+                const data = new Uint8Array(arrayBuffer);
+                let modifiedCount = 0;
+                let position = 0;
+
+                while (position <= data.length - 4) {
+                    if (data[position] === 0x50 &&
+                        data[position + 1] === 0x4B &&
+                        data[position + 2] === 0x01 &&
+                        data[position + 3] === 0x02) {
+                        
+                        const flagsPosition = position + 8;
+                        if (flagsPosition < data.length) {
+                            const currentFlags = data[flagsPosition];
+                            
+                            if (remove) {
+                                if (currentFlags & 0x01) {
+                                    data[flagsPosition] = currentFlags & 0xFE;
+                                    modifiedCount++;
+                                }
+                            } else {
+                                if (!(currentFlags & 0x01)) {
+                                    data[flagsPosition] = currentFlags | 0x01;
+                                    modifiedCount++;
+                                }
+                            }
+                        }
+
+                        const filenameLength = data[position + 28] | (data[position + 29] << 8);
+                        const extraFieldLength = data[position + 30] | (data[position + 31] << 8);
+                        const fileCommentLength = data[position + 32] | (data[position + 33] << 8);
+                        position += 46 + filenameLength + extraFieldLength + fileCommentLength;
+                    } else {
+                        position++;
+                    }
+                }
+
+                return {
+                    data: data.buffer,
+                    modifiedCount: modifiedCount
+                };
+            }
+
+            findEncryptedFiles(arrayBuffer) {
+                const data = new Uint8Array(arrayBuffer);
+                const encryptedFiles = [];
+                let position = 0;
+
+                while (position <= data.length - 4) {
+                    if (data[position] === 0x50 &&
+                        data[position + 1] === 0x4B &&
+                        data[position + 2] === 0x01 &&
+                        data[position + 3] === 0x02) {
+                        
+                        const flagsPosition = position + 8;
+                        if (flagsPosition < data.length && (data[flagsPosition] & 0x01)) {
+                            const filenameLength = data[position + 28] | (data[position + 29] << 8);
+                            const filenameStart = position + 46;
+                            const filenameEnd = filenameStart + filenameLength;
+                            
+                            if (filenameEnd <= data.length) {
+                                const filenameBytes = data.slice(filenameStart, filenameEnd);
+                                const filename = new TextDecoder().decode(filenameBytes);
+                                encryptedFiles.push(filename);
+                            }
+                        }
+
+                        const filenameLength = data[position + 28] | (data[position + 29] << 8);
+                        const extraFieldLength = data[position + 30] | (data[position + 31] << 8);
+                        const fileCommentLength = data[position + 32] | (data[position + 33] << 8);
+                        position += 46 + filenameLength + extraFieldLength + fileCommentLength;
+                    } else {
+                        position++;
+                    }
+                }
+
+                return encryptedFiles;
+            }
+
+            showDownloadOptions() {
+                document.getElementById('downloadOptions').style.display = 'block';
+            }
+
+            hideDownloadOptions() {
+                document.getElementById('downloadOptions').style.display = 'none';
+            }
+
+            updateDownloadLink() {
+                if (!this.processedData || !this.currentFile) return;
+
+                const downloadBtn = document.getElementById('downloadBtn');
+                const fileName = this.generateFileName();
+                
+                downloadBtn.onclick = (e) => {
+                    e.preventDefault();
+                    this.downloadFile(fileName, this.processedData);
+                };
+                
+                downloadBtn.innerHTML = `<i class="fas fa-download"></i> 下载 ${fileName}`;
+                downloadBtn.style.display = 'inline-block';
+            }
+
+            downloadFile(fileName, data) {
+                const blob = new Blob([data], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                link.style.display = 'none';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            }
+
+            generateFileName() {
+                const baseName = this.currentFile.name.replace(/\.[^/.]+$/, "");
+                const extensionMap = {
+                    'zip': '.zip',
+                    'bds': '.bds',
+                    'bdi': '.bdi',
+                    'bda': '.bda'
+                };
+                return baseName + (extensionMap[this.selectedFormat] || '.zip');
+            }
+
+            showProgress(show) {
+                const progressContainer = document.getElementById('progressContainer');
+                const progressBar = document.getElementById('progressBar');
+                const progressText = document.getElementById('progressText');
+                
+                if (show) {
+                    progressContainer.style.display = 'block';
+                    progressBar.style.width = '0%';
+                    progressText.textContent = '0%';
+                } else {
+                    progressContainer.style.display = 'none';
+                }
+            }
+
+            updateProgress(percent) {
+                const progressBar = document.getElementById('progressBar');
+                const progressText = document.getElementById('progressText');
+                
+                progressBar.style.width = percent + '%';
+                progressText.textContent = Math.round(percent) + '%';
+            }
+
+            showStatus(message, type) {
+                const statusDiv = document.getElementById('statusMessage');
+                
+                let icon = '';
+                if (type === 'success') icon = '<i class="fas fa-check-circle"></i>';
+                else if (type === 'error') icon = '<i class="fas fa-exclamation-circle"></i>';
+                else icon = '<i class="fas fa-info-circle"></i>';
+                
+                statusDiv.innerHTML = `<div class="status ${type}">${icon} ${message}</div>`;
+            }
+
+            clearResults() {
+                document.getElementById('resultBox').innerHTML = '请上传文件并选择处理工具...';
+                const downloadBtn = document.getElementById('downloadBtn');
+                downloadBtn.style.display = 'none';
+                downloadBtn.onclick = null;
+                this.hideDownloadOptions();
+            }
+        }
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            const processor = new ZipProcessor();
+            
+            // 添加动画效果
+            setTimeout(() => {
+                document.querySelectorAll('.animated').forEach((el, index) => {
+                    el.style.opacity = 0;
+                    el.classList.add('animated');
+                    el.style.animationDelay = `${index * 0.1}s`;
+                });
+            }, 100);
+        });
+    </script>
+</body>
+</html>
